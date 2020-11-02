@@ -15,7 +15,7 @@ ui.setupUi(MainWindow)
 
 with open('data/tasks.json') as task_file:
 	tasks_dict = json.load(task_file)
-	ui.update_task_blocks(tasks_dict)
+	ui.add_task_blocks(tasks_dict)
 
 # ui.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 771, 311))
 # ui.scrollArea.setGeometry(QtCore.QRect(20, 120, 800, 311))

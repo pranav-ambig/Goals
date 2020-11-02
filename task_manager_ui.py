@@ -9,6 +9,9 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt
+from add_task_dialogue_ui import Ui_Dialog
+
+add_task_details = {}
 
 class task_block():
 
@@ -50,6 +53,7 @@ class task_block():
 									"padding: 6px;}")
 		self.checkBox.setText("")
 		self.checkBox.setObjectName("checkBox")
+		self.checkBox.clicked.connect(self.toggle_subwidgets)
 		self.date_label = QtWidgets.QLabel(self.task_block_frame)
 		self.date_label.setGeometry(QtCore.QRect(300, 10, 111, 30))
 		font = QtGui.QFont()
@@ -61,17 +65,17 @@ class task_block():
 								"}")
 		self.date_label.setAlignment(QtCore.Qt.AlignCenter)
 		self.date_label.setObjectName("date_label")
-		self.priorty_label = QtWidgets.QLabel(self.task_block_frame)
-		self.priorty_label.setGeometry(QtCore.QRect(430, 10, 111, 30))
+		self.priority_label = QtWidgets.QLabel(self.task_block_frame)
+		self.priority_label.setGeometry(QtCore.QRect(430, 10, 111, 30))
 		font = QtGui.QFont()
 		font.setFamily("Google Sans")
-		self.priorty_label.setFont(font)
-		self.priorty_label.setStyleSheet("QLabel {"
+		self.priority_label.setFont(font)
+		self.priority_label.setStyleSheet("QLabel {"
 									"    border-radius: 15px;"
 									"    background-color: rgb(229, 255, 203);"
 									"}")
-		self.priorty_label.setAlignment(QtCore.Qt.AlignCenter)
-		self.priorty_label.setObjectName("priorty_label")
+		self.priority_label.setAlignment(QtCore.Qt.AlignCenter)
+		self.priority_label.setObjectName("priority_label")
 		self.subject_label = QtWidgets.QLabel(self.task_block_frame)
 		self.subject_label.setGeometry(QtCore.QRect(560, 10, 151, 30))
 		font = QtGui.QFont()
@@ -84,18 +88,40 @@ class task_block():
 		self.subject_label.setAlignment(QtCore.Qt.AlignCenter)
 		self.subject_label.setObjectName("subject_label")
 
+	def toggle_subwidgets(self):
+		checked = not self.checkBox.isChecked()
+		self.task_title_label.setEnabled(checked)
+		self.date_label.setEnabled(checked)
+		self.priority_label.setEnabled(checked)
+		self.subject_label.setEnabled(checked)
+
 	def retranslateUi(self):
 		_translate = QtCore.QCoreApplication.translate
 		self.task_title_label.setText(self.task_details["title"])
 		self.date_label.setText(self.task_details["date"])
-		self.priorty_label.setText(self.task_details["priority"])
+		self.priority_label.setText(self.task_details["priority"])
 		self.subject_label.setText(self.task_details["subject"])
+
+class add_task_dialogue(QtWidgets.QDialog):
+
+	def __init__(self):
+		super().__init__()
+		self.bt = QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
+		self.btbox = QtWidgets.QDialogButtonBox(self.bt)
+
+		self.layout = QtWidgets.QVBoxLayout()
+		self.layout.addWidget(self.bt)
+		self.setLayout(self.layout)
+
+		# self.bt.setGeometry(0, 0, 30, 20)
 
 
 class Ui_MainWindow(object):
 	def setupUi(self, MainWindow):
 		self.task_block_list = []
 		self.vbox = QtWidgets.QVBoxLayout()
+		self.vbox.setSpacing(-60)
+		# self.vbox.setMargin(10)
 		MainWindow.setObjectName("MainWindow")
 		MainWindow.resize(800, 600)
 		MainWindow.setTabShape(QtWidgets.QTabWidget.Rounded)
@@ -186,6 +212,7 @@ class Ui_MainWindow(object):
 		font.setItalic(False)
 		font.setWeight(7)
 		self.add_task_label.setFont(font)
+		self.add_task_label.mousePressEvent = self.add_task
 		self.add_task_label.setStyleSheet("QLabel{"
 "font: 57 18pt \"Google Sans\";"
 "color: rgb(72, 115, 35);"
@@ -519,7 +546,7 @@ class Ui_MainWindow(object):
 		self.scrollArea.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.scrollArea.setFrameShadow(QtWidgets.QFrame.Plain)
 		self.scrollArea.setWidgetResizable(True)
-		self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+		# self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 		self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 		# self.scrollArea.setFixedWidth(800)
 		self.scrollArea.setObjectName("scrollArea")
@@ -555,11 +582,18 @@ class Ui_MainWindow(object):
 		# self.retranslateUi(MainWindow)
 		QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-	def update_task_blocks(self, tasks_dict):
+	def add_task(self, event):
+		Dialog = QtWidgets.QDialog()
+		uid = Ui_Dialog()
+		uid.setupUi(Dialog)
+		Dialog.exec_()
+		self.add_task_blocks({"0":uid.get_details()})
+
+
+	def add_task_blocks(self, tasks_dict):
 		tasks = tasks_dict.values()
 		for n, task in enumerate(tasks):
 			task_block_obj = task_block(self, task, n)
-			# task_block_obj = QtWidgets.QLabel(self.scrollAreaWidgetContents)
 			self.task_block_list.append(task_block_obj)
 			task_block_obj.retranslateUi()
 			self.vbox.addWidget(task_block_obj.task_block_frame)
