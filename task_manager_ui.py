@@ -8,14 +8,23 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEvent
 from add_task_dialogue_ui import Ui_Dialog
+import datetime
 
-add_task_details = {}
+# class mouseoverEvent():
+
+# 	def __init__(self):
+# 		pass
+
+# def mouseoverEvent()
+
+tasks_dict = {}
+current_date = datetime.date.today()
 
 class task_block():
 
-	def __init__(self, uimw, task_details: dict=None, n=0):
+	def __init__(self, uimw, task_details: dict=None):
 		#uimw = Ui_MainWindow object
 		# self.uimw = uimw
 		self.task_details = task_details
@@ -113,14 +122,35 @@ class add_task_dialogue(QtWidgets.QDialog):
 		self.layout.addWidget(self.bt)
 		self.setLayout(self.layout)
 
-		# self.bt.setGeometry(0, 0, 30, 20)
+class select_date_dialogue(QtWidgets.QDialog):
 
+	def __init__(self, uimw):
+		super().__init__()
 
-class Ui_MainWindow(object):
+		self.lbl = QtWidgets.QLabel("Select Date")
+		self.de = QtWidgets.QDateEdit()
+		self.bt = QtWidgets.QDialogButtonBox.Ok
+		self.btbox = QtWidgets.QDialogButtonBox(self.bt)
+
+		self.layout = QtWidgets.QVBoxLayout()
+		self.layout.addWidget(self.lbl)
+		self.layout.addWidget(self.de)
+		self.layout.addWidget(self.btbox)
+		self.setLayout(self.layout)
+		self.btbox.accepted.connect(lambda: self.update_date_label(uimw))
+
+	def update_date_label(self, uimw):
+		d = self.de.date()
+		d = '/'.join((str(d.day()), str(d.month()), str(d.year())))
+		uimw.selected_date = d
+		self.close()
+
+class Ui_MainWindow(QtWidgets.QWidget):
 	def setupUi(self, MainWindow):
 		self.task_block_list = []
 		self.vbox = QtWidgets.QVBoxLayout()
 		self.vbox.setSpacing(-60)
+		self.selected_date = "Today"
 		# self.vbox.setMargin(10)
 		MainWindow.setObjectName("MainWindow")
 		MainWindow.resize(800, 600)
@@ -276,6 +306,7 @@ class Ui_MainWindow(object):
 		self.date_select_frame.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.date_select_frame.setFrameShadow(QtWidgets.QFrame.Plain)
 		self.date_select_frame.setObjectName("date_select_frame")
+
 		self.date_select_label = QtWidgets.QLabel(self.date_select_frame)
 		self.date_select_label.setGeometry(QtCore.QRect(10, 10, 231, 151))
 		font = QtGui.QFont()
@@ -359,6 +390,7 @@ class Ui_MainWindow(object):
 		self.date_select_combox.setObjectName("date_select_combox")
 		self.date_select_combox.addItem("")
 		self.date_select_combox.addItem("")
+		self.date_select_combox.addItem("")
 		self.sub_select_frame = QtWidgets.QFrame(self.centralwidget)
 		self.sub_select_frame.setGeometry(QtCore.QRect(200, 470, 191, 171))
 		self.sub_select_frame.setFrameShape(QtWidgets.QFrame.NoFrame)
@@ -438,9 +470,8 @@ class Ui_MainWindow(object):
 		font.setPointSize(11)
 		self.sub_select_combox.setFont(font)
 		self.sub_select_combox.setStyleSheet("QComboBox {"
-"    text-align: center;"
+"text-align: center;"
 "}"
-""
 "QListView {"
 "    background-color: rgb(175, 235, 114);"
 "}")
@@ -580,36 +611,187 @@ class Ui_MainWindow(object):
 		self.menubar.addAction(self.menuFile.menuAction())
 
 		# self.retranslateUi(MainWindow)
+		self.date_select_frame.installEventFilter(self)
+		self.priority_select_frame.installEventFilter(self)
+		self.sub_select_frame.installEventFilter(self)
+
+		self.date_select_combox.currentTextChanged.connect(self.sort_tasks)
+		self.sub_select_combox.currentTextChanged.connect(self.sort_tasks)
+		self.priority_select_combox.currentTextChanged.connect(self.sort_tasks)
+
 		QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+
+	# def update_date_label(self):
+	# 	temp = self.date_select_combox.currentText()
+	# 	if temp == "Select Date":
+	# 	else:
+	# 		print(temp)
+	# 		self.date_select_label.setText(temp)
+	# 		self.sort_tasks()
 
 	def add_task(self, event):
 		Dialog = QtWidgets.QDialog()
 		uid = Ui_Dialog()
 		uid.setupUi(Dialog)
 		Dialog.exec_()
-		self.add_task_blocks({"0":uid.get_details()})
+		d = uid.get_details()
+		if d:
+			n = len(tasks_dict.values())
+			tasks_dict["n"] = d
+			self.sort_tasks()
 
+	def sort_tasks(self):
+		self.empty_layout()
+		# self.retranslateUi(self)
+		global tasks_dict
 
-	def add_task_blocks(self, tasks_dict):
 		tasks = tasks_dict.values()
-		for n, task in enumerate(tasks):
-			task_block_obj = task_block(self, task, n)
+		sorted_tasks = []
+
+		self.selected_date = self.date_select_combox.currentText()
+		self.date_select_label.setText(str(self.selected_date))
+
+		if self.selected_date == 'Today':
+			self.selected_date = current_date
+		elif self.selected_date == 'Tomorrow':
+			self.selected_date = current_date + datetime.timedelta(days=1)
+		else:
+			dlg = select_date_dialogue(self)
+			dlg.exec_()
+			self.date_select_label.setText(self.selected_date)
+			d = self.selected_date.split('/')
+			self.selected_date = datetime.date(int(d[2]), int(d[1]), int(d[0]))
+
+		self.selected_subject = self.sub_select_combox.currentText()
+		if self.selected_subject == "All":
+			self.sub_select_label.setText("All Subjects")
+		else:	
+			self.sub_select_label.setText(self.selected_subject)
+
+		self.selected_priority = self.priority_select_combox.currentText()
+		if self.selected_priority == "All":
+			self.priority_select_label.setText("All Priority")
+		else:	
+			self.priority_select_label.setText(self.selected_priority)
+
+		for task in tasks:
+			dt, s, p = False, False, False
+			pval = 0 #priority value
+
+			d = task["date"].split('/')
+			d = datetime.date(int(d[2]), int(d[1]), int(d[0]))
+			if d == self.selected_date:
+				dt = True
+				pval += 1
+			elif d < self.selected_date:
+				if self.selected_date == current_date:
+					dt = True
+				pval += 3
+			
+			if self.selected_subject == "All":
+				s = True
+			else:
+				if task["subject"] == self.selected_subject:
+					s = True
+
+			if self.selected_priority == "All":
+				p = True
+			else:
+				if task["priority"] == self.selected_priority:
+					p = True
+
+			if task["priority"] == "High":
+				# print('at high')
+				pval += 2
+			elif task["priority"] == "Medium":
+				pval += 1
+			else:
+				pval += 0
+
+			# print(dt, s, p, task["title"])
+			if dt and s and p:
+				sorted_tasks.append((task, pval))
+
+			dt, s, p = False, False, False
+
+		sorted_tasks.sort(key=lambda t: t[1], reverse=True)
+
+		for task in [t[0] for t in sorted_tasks]:
+			task_block_obj = task_block(self, task)
+
+			d = task["date"].split('/')
+			d = datetime.date(int(d[2]), int(d[1]), int(d[0]))
+
+			if d < current_date:
+				task_block_obj.date_label.setStyleSheet("QLabel {"
+						"    border-radius: 15px;"
+						"    background-color: rgb(252, 233, 79);"
+						"}")
+			else:
+				if self.selected_date == current_date:
+					task_block_obj.date_label.setStyleSheet("QLabel {"
+							"    border-radius: 15px;"
+							"    background-color: rgb(159, 216, 243);"
+							"}")
+
+			if task["priority"] == "High":
+				task_block_obj.priority_label.setStyleSheet("QLabel {"
+						"    border-radius: 15px;"
+						"    background-color: rgb(255, 100, 100);"
+						"}")
+			elif task["priority"] == "Medium":
+				task_block_obj.priority_label.setStyleSheet("QLabel {"
+						"    border-radius: 15px;"
+						"    background-color: rgb(255, 230, 128);"
+						"}")
+			else:
+				task_block_obj.priority_label.setStyleSheet("QLabel {"
+						"    border-radius: 15px;"
+						"    background-color: rgb(179, 255, 128);"
+						"}")
+
 			self.task_block_list.append(task_block_obj)
 			task_block_obj.retranslateUi()
 			self.vbox.addWidget(task_block_obj.task_block_frame)
+
 		self.scrollAreaWidgetContents.setLayout(self.vbox)
 		self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+		self.retranslateUi(self)
 
-	# def add_task_blocks(self):
-	# 	# print('entered add task blocks')
-	# 	for n in range(40):
-	# 		x = QtWidgets.QLabel("hello")
-	# 		self.vbox.addWidget(x)
-	# 	self.scrollAreaWidgetContents.setLayout(self.vbox)
-	# 	self.scrollArea.setWidget(self.scrollAreaWidgetContents)
-			
-	# def add_task_block():
-	# 	task_block_obj
+
+	def move_animation(self, wdgt, dirn_up=True):
+		self.anim = QPropertyAnimation(wdgt, b"geometry")
+		self.anim.setDuration(100)
+		temp = wdgt.rect()
+		x = wdgt.x()
+		y = wdgt.y()
+		w = temp.width()
+		h = temp.height()
+
+		self.anim.setStartValue(QtCore.QRect(x, y, w, h))
+		if dirn_up:
+			self.anim.setEndValue(QtCore.QRect(x, 430, w, h))
+		else:
+			self.anim.setEndValue(QtCore.QRect(x, 470, w, h))
+		self.anim.start()
+		# print('anim done')
+
+	def eventFilter(self, object, event):
+		if event.type() == QEvent.Enter:
+			self.move_animation(object)
+			return True
+		elif event.type() == QEvent.Leave:
+			self.move_animation(object, False)
+		return False
+
+	def empty_layout(self):
+
+		for x in range(self.vbox.count()):
+			self.vbox.itemAt(0).widget().close()
+			self.vbox.takeAt(0)
+
+		self.task_block_list = []
 
 	def retranslateUi(self, MainWindow):
 		_translate = QtCore.QCoreApplication.translate
@@ -622,17 +804,18 @@ class Ui_MainWindow(object):
 		self.overdue_label.setText(_translate("MainWindow", "Overdue"
 "\n0"))
 		self.add_task_label.setText(_translate("MainWindow", "Add Task"))
-		self.date_select_label.setText(_translate("MainWindow", "Today"))
+		# self.date_select_label.setText(_translate("MainWindow", str(self.selected_date)))
 		self.date_select_combox.setItemText(0, _translate("MainWindow", "Today"))
 		self.date_select_combox.setItemText(1, _translate("MainWindow", "Tomorrow"))
-		self.sub_select_label.setText(_translate("MainWindow", "All Subjects"))
+		self.date_select_combox.setItemText(2, _translate("MainWindow", "Select Date"))
+		# self.sub_select_label.setText(_translate("MainWindow", "All Subjects"))
 		self.sub_select_combox.setItemText(0, _translate("MainWindow", "All"))
 		self.sub_select_combox.setItemText(1, _translate("MainWindow", "Physics"))
 		self.sub_select_combox.setItemText(2, _translate("MainWindow", "Chemistry"))
 		self.sub_select_combox.setItemText(3, _translate("MainWindow", "Maths"))
-		self.sub_select_combox.setItemText(4, _translate("MainWindow", "Computer Science"))
+		self.sub_select_combox.setItemText(4, _translate("MainWindow", "CS"))
 		self.sub_select_combox.setItemText(5, _translate("MainWindow", "Biology"))
-		self.priority_select_label.setText(_translate("MainWindow", "All Priority"))
+		# self.priority_select_label.setText(_translate("MainWindow", "All Priority"))
 		self.priority_select_combox.setItemText(0, _translate("MainWindow", "All"))
 		self.priority_select_combox.setItemText(1, _translate("MainWindow", "Low"))
 		self.priority_select_combox.setItemText(2, _translate("MainWindow", "Medium"))
@@ -649,9 +832,25 @@ class Ui_MainWindow(object):
 
 if __name__ == "__main__":
 	import sys
+	import json
+
 	app = QtWidgets.QApplication(sys.argv)
 	MainWindow = QtWidgets.QMainWindow()
 	ui = Ui_MainWindow()
 	ui.setupUi(MainWindow)
+	ui.retranslateUi(MainWindow)
+
+	with open('data/tasks.json') as task_file:
+		tasks_dict = json.load(task_file)
+		ui.sort_tasks()
+
+	ui.retranslateUi(MainWindow)
 	MainWindow.show()
 	sys.exit(app.exec_())
+
+	# app = QtWidgets.QApplication(sys.argv)
+	# MainWindow = QtWidgets.QMainWindow()
+	# ui = Ui_MainWindow()
+	# ui.setupUi(MainWindow)
+	# MainWindow.show()
+	# sys.exit(app.exec_())

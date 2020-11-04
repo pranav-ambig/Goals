@@ -99,6 +99,9 @@ class Ui_Dialog(QtWidgets.QDialog):
 		date = '/'.join((str(date.day()), str(date.month()), str(date.year())))
 		priority = str(self.comboBox.currentText())
 		subject  = str(self.comboBox_2.currentText())
+		
+		title = 'Untitled' if title == '' else title
+
 		self.dict = {"title":title, "date":date, "priority":priority, "subject":subject}
 		self.Dialog.close()
 
@@ -120,7 +123,7 @@ class Ui_Dialog(QtWidgets.QDialog):
 		self.comboBox_2.setItemText(2, _translate("Dialog", "Maths"))
 		self.comboBox_2.setItemText(3, _translate("Dialog", "Computer Science"))
 		self.comboBox_2.setItemText(4, _translate("Dialog", "Biology"))
-		self.comboBox_2.setItemText(5, _translate("Dialog", "Literature"))
+		self.comboBox_2.setItemText(5, _translate("Dialog", "None"))
 
 
 if __name__ == "__main__":
