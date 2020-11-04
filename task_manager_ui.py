@@ -1,38 +1,24 @@
-# -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file 'task manager_3.ui'
-#
-# Created by: PyQt5 UI code generator 5.12.3
-#
-# WARNING! All changes made in this file will be lost!
-
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import Qt, QPropertyAnimation, QEvent
 from add_task_dialogue_ui import Ui_Dialog
 import datetime
-
-# class mouseoverEvent():
-
-# 	def __init__(self):
-# 		pass
-
-# def mouseoverEvent()
+from playsound import playsound
+import json
 
 tasks_dict = {}
 current_date = datetime.date.today()
 
 class task_block():
 
-	def __init__(self, uimw, task_details: dict=None):
+	def __init__(self, uimw, task_details: dict=None, index="0"):
 		#uimw = Ui_MainWindow object
-		# self.uimw = uimw
+		self.uimw = uimw
+		self.index = index
 		self.task_details = task_details
 		self.task_block_frame = QtWidgets.QFrame(uimw.scrollAreaWidgetContents)
 		self.task_block_frame.setGeometry(QtCore.QRect(10, 0, 741, 50))
 		self.task_block_frame.setMinimumSize(741, 50)
 		self.task_block_frame.setMaximumSize(741, 50)
-		# print(uimw.task_block_frame.rect().getCoords()[0])
 		self.task_block_frame.setStyleSheet("QFrame{"
 											"background-color: rgb(138, 226, 52);"
 											"border-radius: 25px;"
@@ -43,9 +29,9 @@ class task_block():
 
 		self.task_title_label = QtWidgets.QLabel(self.task_block_frame)
 		self.task_title_label.setGeometry(QtCore.QRect(50, 10, 231, 30))
-		# self.task_title_label.setMinimumSize(231, 30)
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		self.task_title_label.setFont(font)
 		self.task_title_label.setStyleSheet("QLabel {"
 								"    border-radius: 15px;"
@@ -65,8 +51,8 @@ class task_block():
 		self.checkBox.clicked.connect(self.toggle_subwidgets)
 		self.date_label = QtWidgets.QLabel(self.task_block_frame)
 		self.date_label.setGeometry(QtCore.QRect(300, 10, 111, 30))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		self.date_label.setFont(font)
 		self.date_label.setStyleSheet("QLabel {"
 								"    border-radius: 15px;"
@@ -76,8 +62,8 @@ class task_block():
 		self.date_label.setObjectName("date_label")
 		self.priority_label = QtWidgets.QLabel(self.task_block_frame)
 		self.priority_label.setGeometry(QtCore.QRect(430, 10, 111, 30))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		self.priority_label.setFont(font)
 		self.priority_label.setStyleSheet("QLabel {"
 									"    border-radius: 15px;"
@@ -87,8 +73,8 @@ class task_block():
 		self.priority_label.setObjectName("priority_label")
 		self.subject_label = QtWidgets.QLabel(self.task_block_frame)
 		self.subject_label.setGeometry(QtCore.QRect(560, 10, 151, 30))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		self.subject_label.setFont(font)
 		self.subject_label.setStyleSheet("QLabel {"
 									"    border-radius: 15px;"
@@ -103,6 +89,19 @@ class task_block():
 		self.date_label.setEnabled(checked)
 		self.priority_label.setEnabled(checked)
 		self.subject_label.setEnabled(checked)
+		if not checked:
+			tasks_dict[self.index]["checked"] = "T"
+			playsound("Task_done.ogg")
+		else:
+			tasks_dict[self.index]["checked"] = "F"
+		self.uimw.sort_tasks()
+
+	def toggle_subwidgets_only(self):
+		self.checkBox.setChecked(True)
+		self.task_title_label.setEnabled(False)
+		self.date_label.setEnabled(False)
+		self.priority_label.setEnabled(False)
+		self.subject_label.setEnabled(False)
 
 	def retranslateUi(self):
 		_translate = QtCore.QCoreApplication.translate
@@ -128,6 +127,12 @@ class select_date_dialogue(QtWidgets.QDialog):
 		super().__init__()
 
 		self.lbl = QtWidgets.QLabel("Select Date")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
+		self.lbl.setFont(font)
+
+		self.setWindowTitle("Select Date")
+
 		self.de = QtWidgets.QDateEdit()
 		self.bt = QtWidgets.QDialogButtonBox.Ok
 		self.btbox = QtWidgets.QDialogButtonBox(self.bt)
@@ -140,6 +145,7 @@ class select_date_dialogue(QtWidgets.QDialog):
 		self.btbox.accepted.connect(lambda: self.update_date_label(uimw))
 
 	def update_date_label(self, uimw):
+		print(self.de)
 		d = self.de.date()
 		d = '/'.join((str(d.day()), str(d.month()), str(d.year())))
 		uimw.selected_date = d
@@ -148,10 +154,10 @@ class select_date_dialogue(QtWidgets.QDialog):
 class Ui_MainWindow(QtWidgets.QWidget):
 	def setupUi(self, MainWindow):
 		self.task_block_list = []
+		self.ac, self.comc, self.oc = 0, 0, 0
 		self.vbox = QtWidgets.QVBoxLayout()
 		self.vbox.setSpacing(-60)
 		self.selected_date = "Today"
-		# self.vbox.setMargin(10)
 		MainWindow.setObjectName("MainWindow")
 		MainWindow.resize(800, 600)
 		MainWindow.setTabShape(QtWidgets.QTabWidget.Rounded)
@@ -162,15 +168,15 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.centralwidget.setObjectName("centralwidget")
 		self.Tasks_head_label = QtWidgets.QLabel(self.centralwidget)
 		self.Tasks_head_label.setGeometry(QtCore.QRect(-70, 30, 311, 80))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(20)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
 		self.Tasks_head_label.setFont(font)
 		self.Tasks_head_label.setStyleSheet("QLabel{"
-"font: 57 20pt \"Google Sans\";"
+"font: 57 20pt \"Baloo2\";"
 "color: rgb(72, 115, 35);"
 "border-radius: 40px;"
 "background-color: rgb(138, 226, 52);"
@@ -184,49 +190,49 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.Tasks_head_label.setObjectName("Tasks_head_label")
 		self.active_tasks_label = QtWidgets.QLabel(self.centralwidget)
 		self.active_tasks_label.setGeometry(QtCore.QRect(330, 30, 141, 80))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(14)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
 		self.active_tasks_label.setFont(font)
 		self.active_tasks_label.setStyleSheet("QLabel{"
-"font: 57 14pt \"Google Sans\";"
+"font: 57 14pt \"Baloo2\";"
 "color: rgb(52, 101, 164);"
 "border-radius: 40px;"
 "background-color: rgb(159, 216, 243);"
 "}")
 		self.active_tasks_label.setAlignment(QtCore.Qt.AlignCenter)
 		self.active_tasks_label.setObjectName("active_tasks_label")
-		self.competed_label = QtWidgets.QLabel(self.centralwidget)
-		self.competed_label.setGeometry(QtCore.QRect(490, 30, 131, 80))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		self.completed_label = QtWidgets.QLabel(self.centralwidget)
+		self.completed_label.setGeometry(QtCore.QRect(490, 30, 131, 80))
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(14)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
-		self.competed_label.setFont(font)
-		self.competed_label.setStyleSheet("QLabel{"
-"font: 57 14pt \"Google Sans\";"
+		self.completed_label.setFont(font)
+		self.completed_label.setStyleSheet("QLabel{"
+"font: 57 14pt \"Baloo2\";"
 "border-radius: 40px;"
 "color: rgb(72, 115, 35);"
 "background-color: rgb(169, 229, 110);"
 "}")
-		self.competed_label.setAlignment(QtCore.Qt.AlignCenter)
-		self.competed_label.setObjectName("competed_label")
+		self.completed_label.setAlignment(QtCore.Qt.AlignCenter)
+		self.completed_label.setObjectName("competed_label")
 		self.overdue_label = QtWidgets.QLabel(self.centralwidget)
 		self.overdue_label.setGeometry(QtCore.QRect(640, 30, 131, 80))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(14)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
 		self.overdue_label.setFont(font)
 		self.overdue_label.setStyleSheet("QLabel{"
-"font: 57 14pt \"Google Sans\";"
+"font: 57 14pt \"Baloo2\";"
 "border-radius: 40px;"
 "color: rgb(143, 89, 2);"
 "background-color: rgb(252, 233, 79);"
@@ -234,9 +240,9 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.overdue_label.setAlignment(QtCore.Qt.AlignCenter)
 		self.overdue_label.setObjectName("overdue_label")	
 		self.add_task_label = QtWidgets.QLabel(self.centralwidget)
-		self.add_task_label.setGeometry(QtCore.QRect(650, 480, 231, 151))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		self.add_task_label.setGeometry(QtCore.QRect(650, 500, 231, 151))
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(18)
 		font.setBold(False)
 		font.setItalic(False)
@@ -244,7 +250,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.add_task_label.setFont(font)
 		self.add_task_label.mousePressEvent = self.add_task
 		self.add_task_label.setStyleSheet("QLabel{"
-"font: 57 18pt \"Google Sans\";"
+"font: 57 18pt \"Baloo2\";"
 "color: rgb(72, 115, 35);"
 "border-radius: 50px;"
 "background-color: rgb(138, 226, 52);"
@@ -268,7 +274,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"font\">"
 "    <font>"
-"     <family>Google Sans</family>"
+"     <family>Baloo2</family>"
 "     <pointsize>14</pointsize>"
 "     <weight>7</weight>"
 "     <italic>false</italic>"
@@ -277,7 +283,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"styleSheet\">"
 "    <string notr=\"true\">QLabel{"
-"font: 57 14pt &quot;Google Sans&quot;;"
+"font: 57 14pt &quot;Baloo2&quot;;"
 "color: rgb(72, 115, 35);"
 "border-radius: 40px;"
 "background-color: rgb(138, 226, 52);"
@@ -302,22 +308,22 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.add_task_label.setAlignment(QtCore.Qt.AlignCenter)
 		self.add_task_label.setObjectName("add_task_label")
 		self.date_select_frame = QtWidgets.QFrame(self.centralwidget)
-		self.date_select_frame.setGeometry(QtCore.QRect(-90, 470, 251, 171))
+		self.date_select_frame.setGeometry(QtCore.QRect(-90, 495, 251, 171))
 		self.date_select_frame.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.date_select_frame.setFrameShadow(QtWidgets.QFrame.Plain)
 		self.date_select_frame.setObjectName("date_select_frame")
 
 		self.date_select_label = QtWidgets.QLabel(self.date_select_frame)
 		self.date_select_label.setGeometry(QtCore.QRect(10, 10, 231, 151))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(18)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
 		self.date_select_label.setFont(font)
 		self.date_select_label.setStyleSheet("QLabel{"
-"font: 57 18pt \"Google Sans\";"
+"font: 57 18pt \"Baloo2\";"
 "color: rgb(72, 115, 35);"
 "border-radius: 50px;"
 "background-color: rgb(138, 226, 52);"
@@ -341,7 +347,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"font\">"
 "    <font>"
-"     <family>Google Sans</family>"
+"     <family>Baloo2</family>"
 "     <pointsize>14</pointsize>"
 "     <weight>7</weight>"
 "     <italic>false</italic>"
@@ -350,7 +356,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"styleSheet\">"
 "    <string notr=\"true\">QLabel{"
-"font: 57 14pt &quot;Google Sans&quot;;"
+"font: 57 14pt &quot;Baloo2&quot;;"
 "color: rgb(72, 115, 35);"
 "border-radius: 40px;"
 "background-color: rgb(138, 226, 52);"
@@ -376,8 +382,8 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.date_select_label.setObjectName("date_select_label")
 		self.date_select_combox = QtWidgets.QComboBox(self.date_select_frame)
 		self.date_select_combox.setGeometry(QtCore.QRect(108, 80, 111, 28))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(11)
 		self.date_select_combox.setFont(font)
 		self.date_select_combox.setStyleSheet("QComboBox {"
@@ -392,21 +398,21 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.date_select_combox.addItem("")
 		self.date_select_combox.addItem("")
 		self.sub_select_frame = QtWidgets.QFrame(self.centralwidget)
-		self.sub_select_frame.setGeometry(QtCore.QRect(200, 470, 191, 171))
+		self.sub_select_frame.setGeometry(QtCore.QRect(200, 495, 191, 171))
 		self.sub_select_frame.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.sub_select_frame.setFrameShadow(QtWidgets.QFrame.Plain)
 		self.sub_select_frame.setObjectName("sub_select_frame")
 		self.sub_select_label = QtWidgets.QLabel(self.sub_select_frame)
 		self.sub_select_label.setGeometry(QtCore.QRect(10, 10, 171, 151))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(16)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
 		self.sub_select_label.setFont(font)
 		self.sub_select_label.setStyleSheet("QLabel{"
-"font: 57 16pt \"Google Sans\";"
+"font: 57 16pt \"Baloo2\";"
 "color: rgb(72, 115, 35);"
 "border-radius: 50px;"
 "background-color: rgb(138, 226, 52);"
@@ -430,7 +436,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"font\">"
 "    <font>"
-"     <family>Google Sans</family>"
+"     <family>Baloo2</family>"
 "     <pointsize>14</pointsize>"
 "     <weight>7</weight>"
 "     <italic>false</italic>"
@@ -439,7 +445,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"styleSheet\">"
 "    <string notr=\"true\">QLabel{"
-"font: 57 14pt &quot;Google Sans&quot;;"
+"font: 57 14pt &quot;Baloo2&quot;;"
 "color: rgb(72, 115, 35);"
 "border-radius: 40px;"
 "background-color: rgb(138, 226, 52);"
@@ -465,8 +471,8 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.sub_select_label.setObjectName("sub_select_label")
 		self.sub_select_combox = QtWidgets.QComboBox(self.sub_select_frame)
 		self.sub_select_combox.setGeometry(QtCore.QRect(30, 80, 131, 28))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(11)
 		self.sub_select_combox.setFont(font)
 		self.sub_select_combox.setStyleSheet("QComboBox {"
@@ -483,21 +489,21 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.sub_select_combox.addItem("")
 		self.sub_select_combox.addItem("")
 		self.priority_select_frame = QtWidgets.QFrame(self.centralwidget)
-		self.priority_select_frame.setGeometry(QtCore.QRect(410, 470, 191, 171))
+		self.priority_select_frame.setGeometry(QtCore.QRect(410, 495, 191, 171))
 		self.priority_select_frame.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.priority_select_frame.setFrameShadow(QtWidgets.QFrame.Plain)
 		self.priority_select_frame.setObjectName("priority_select_frame")
 		self.priority_select_label = QtWidgets.QLabel(self.priority_select_frame)
 		self.priority_select_label.setGeometry(QtCore.QRect(10, 10, 171, 151))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(16)
 		font.setBold(False)
 		font.setItalic(False)
 		font.setWeight(7)
 		self.priority_select_label.setFont(font)
 		self.priority_select_label.setStyleSheet("QLabel{"
-"font: 57 16pt \"Google Sans\";"
+"font: 57 16pt \"Baloo2\";"
 "color: rgb(72, 115, 35);"
 "border-radius: 50px;"
 "background-color: rgb(138, 226, 52);"
@@ -521,7 +527,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"font\">"
 "    <font>"
-"     <family>Google Sans</family>"
+"     <family>Baloo2</family>"
 "     <pointsize>14</pointsize>"
 "     <weight>7</weight>"
 "     <italic>false</italic>"
@@ -530,7 +536,7 @@ class Ui_MainWindow(QtWidgets.QWidget):
 "   </property>"
 "   <property name=\"styleSheet\">"
 "    <string notr=\"true\">QLabel{"
-"font: 57 14pt &quot;Google Sans&quot;;"
+"font: 57 14pt &quot;Baloo2&quot;;"
 "color: rgb(72, 115, 35);"
 "border-radius: 40px;"
 "background-color: rgb(138, 226, 52);"
@@ -555,9 +561,9 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.priority_select_label.setAlignment(QtCore.Qt.AlignCenter)
 		self.priority_select_label.setObjectName("priority_select_label")
 		self.priority_select_combox = QtWidgets.QComboBox(self.priority_select_frame)
-		self.priority_select_combox.setGeometry(QtCore.QRect(50, 80, 81, 28))
-		font = QtGui.QFont()
-		font.setFamily("Google Sans")
+		self.priority_select_combox.setGeometry(QtCore.QRect(40, 80, 91, 28))
+		font = QtGui.QFont("Baloo2")
+		font.setFamily("Baloo2")
 		font.setPointSize(11)
 		self.priority_select_combox.setFont(font)
 		self.priority_select_combox.setStyleSheet("QComboBox {"
@@ -577,40 +583,28 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.scrollArea.setFrameShape(QtWidgets.QFrame.NoFrame)
 		self.scrollArea.setFrameShadow(QtWidgets.QFrame.Plain)
 		self.scrollArea.setWidgetResizable(True)
-		# self.scrollArea.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
 		self.scrollArea.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-		# self.scrollArea.setFixedWidth(800)
 		self.scrollArea.setObjectName("scrollArea")
 		self.scrollAreaWidgetContents = QtWidgets.QWidget()
 		self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 771, 311))
 		self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
 
-		# self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 		self.scrollArea.raise_()
 		self.priority_select_frame.raise_()
 		self.sub_select_frame.raise_()
 		self.Tasks_head_label.raise_()
 		self.active_tasks_label.raise_()
-		self.competed_label.raise_()
+		self.completed_label.raise_()
 		self.overdue_label.raise_()
 		self.add_task_label.raise_()
 		self.date_select_frame.raise_()
 		MainWindow.setCentralWidget(self.centralwidget)
-		self.menubar = QtWidgets.QMenuBar(MainWindow)
-		self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 25))
-		self.menubar.setObjectName("menubar")
-		self.menuFile = QtWidgets.QMenu(self.menubar)
-		self.menuFile.setObjectName("menuFile")
-		MainWindow.setMenuBar(self.menubar)
 		self.statusbar = QtWidgets.QStatusBar(MainWindow)
 		self.statusbar.setObjectName("statusbar")
 		MainWindow.setStatusBar(self.statusbar)
-		self.actionHome = QtWidgets.QAction(MainWindow)
-		self.actionHome.setObjectName("actionHome")
-		self.menuFile.addAction(self.actionHome)
-		self.menubar.addAction(self.menuFile.menuAction())
-
-		# self.retranslateUi(MainWindow)
+		self.actionDoc = QtWidgets.QAction(MainWindow)
+		self.actionDoc.setObjectName("actionDoc")
+	
 		self.date_select_frame.installEventFilter(self)
 		self.priority_select_frame.installEventFilter(self)
 		self.sub_select_frame.installEventFilter(self)
@@ -621,15 +615,6 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
 		QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-
-	# def update_date_label(self):
-	# 	temp = self.date_select_combox.currentText()
-	# 	if temp == "Select Date":
-	# 	else:
-	# 		print(temp)
-	# 		self.date_select_label.setText(temp)
-	# 		self.sort_tasks()
-
 	def add_task(self, event):
 		Dialog = QtWidgets.QDialog()
 		uid = Ui_Dialog()
@@ -638,15 +623,14 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		d = uid.get_details()
 		if d:
 			n = len(tasks_dict.values())
-			tasks_dict["n"] = d
+			tasks_dict[str(n)] = d
 			self.sort_tasks()
 
 	def sort_tasks(self):
-		self.empty_layout()
-		# self.retranslateUi(self)
 		global tasks_dict
+		self.empty_layout()
 
-		tasks = tasks_dict.values()
+		tasks = tasks_dict.items()
 		sorted_tasks = []
 
 		self.selected_date = self.date_select_combox.currentText()
@@ -654,11 +638,16 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
 		if self.selected_date == 'Today':
 			self.selected_date = current_date
+			self.ac, self.comc, self.oc = 0, 0, 0 
 		elif self.selected_date == 'Tomorrow':
 			self.selected_date = current_date + datetime.timedelta(days=1)
 		else:
 			dlg = select_date_dialogue(self)
 			dlg.exec_()
+			if self.selected_date == "Select Date":
+				self.selected_date = "Today"
+				self.date_select_combox.setCurrentText(self.selected_date)
+				return
 			self.date_select_label.setText(self.selected_date)
 			d = self.selected_date.split('/')
 			self.selected_date = datetime.date(int(d[2]), int(d[1]), int(d[0]))
@@ -675,17 +664,20 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		else:	
 			self.priority_select_label.setText(self.selected_priority)
 
-		for task in tasks:
+		for index, task in tasks:
 			dt, s, p = False, False, False
 			pval = 0 #priority value
 
 			d = task["date"].split('/')
 			d = datetime.date(int(d[2]), int(d[1]), int(d[0]))
 			if d == self.selected_date:
+				if self.selected_date == current_date:
+					self.ac += 1
 				dt = True
 				pval += 1
 			elif d < self.selected_date:
 				if self.selected_date == current_date:
+					self.oc += 1
 					dt = True
 				pval += 3
 			
@@ -702,34 +694,43 @@ class Ui_MainWindow(QtWidgets.QWidget):
 					p = True
 
 			if task["priority"] == "High":
-				# print('at high')
 				pval += 2
 			elif task["priority"] == "Medium":
 				pval += 1
 			else:
 				pval += 0
 
-			# print(dt, s, p, task["title"])
 			if dt and s and p:
-				sorted_tasks.append((task, pval))
+				sorted_tasks.append((index, task, pval))
 
 			dt, s, p = False, False, False
 
-		sorted_tasks.sort(key=lambda t: t[1], reverse=True)
 
-		for task in [t[0] for t in sorted_tasks]:
-			task_block_obj = task_block(self, task)
+		sorted_tasks.sort(key=lambda t: t[2], reverse=True)
+
+		self.ac, self.comc, self.oc = 0, 0, 0
+
+		for index, task, pval in sorted_tasks:
+			task_block_obj = task_block(self, task, index=index)
 
 			d = task["date"].split('/')
 			d = datetime.date(int(d[2]), int(d[1]), int(d[0]))
 
 			if d < current_date:
+				if task["checked"] == "T":
+					self.comc += 1
+				else:
+					self.oc += 1
 				task_block_obj.date_label.setStyleSheet("QLabel {"
 						"    border-radius: 15px;"
 						"    background-color: rgb(252, 233, 79);"
 						"}")
 			else:
 				if self.selected_date == current_date:
+					if task["checked"] == "T":
+						self.comc += 1
+					else:
+						self.ac += 1
 					task_block_obj.date_label.setStyleSheet("QLabel {"
 							"    border-radius: 15px;"
 							"    background-color: rgb(159, 216, 243);"
@@ -751,6 +752,8 @@ class Ui_MainWindow(QtWidgets.QWidget):
 						"    background-color: rgb(179, 255, 128);"
 						"}")
 
+			if task["checked"] == "T":
+				task_block_obj.toggle_subwidgets_only()
 			self.task_block_list.append(task_block_obj)
 			task_block_obj.retranslateUi()
 			self.vbox.addWidget(task_block_obj.task_block_frame)
@@ -758,6 +761,14 @@ class Ui_MainWindow(QtWidgets.QWidget):
 		self.scrollAreaWidgetContents.setLayout(self.vbox)
 		self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 		self.retranslateUi(self)
+		if self.selected_date == current_date:
+			self.update_number_labels()
+		if not len(sorted_tasks):
+			self.statusbar.showMessage("No tasks currently, click Add task to add one")
+		else:
+			self.statusbar.showMessage("")
+			
+
 
 
 	def move_animation(self, wdgt, dirn_up=True):
@@ -771,11 +782,10 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
 		self.anim.setStartValue(QtCore.QRect(x, y, w, h))
 		if dirn_up:
-			self.anim.setEndValue(QtCore.QRect(x, 430, w, h))
+			self.anim.setEndValue(QtCore.QRect(x, 455, w, h))
 		else:
-			self.anim.setEndValue(QtCore.QRect(x, 470, w, h))
+			self.anim.setEndValue(QtCore.QRect(x, 495, w, h))
 		self.anim.start()
-		# print('anim done')
 
 	def eventFilter(self, object, event):
 		if event.type() == QEvent.Enter:
@@ -793,48 +803,53 @@ class Ui_MainWindow(QtWidgets.QWidget):
 
 		self.task_block_list = []
 
+	def update_number_labels(self):
+		self.active_tasks_label.setText("Active Tasks\n"+str(self.ac))
+		self.completed_label.setText("Completed\n"+str(self.comc))
+		self.overdue_label.setText("Overdue\n"+str(self.oc))
+
 	def retranslateUi(self, MainWindow):
 		_translate = QtCore.QCoreApplication.translate
 		MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
 		self.Tasks_head_label.setText(_translate("MainWindow", "Tasks"))
-		self.active_tasks_label.setText(_translate("MainWindow", "Active Tasks"
-"\n0"))
-		self.competed_label.setText(_translate("MainWindow", "Completed"
-"\n0"))
-		self.overdue_label.setText(_translate("MainWindow", "Overdue"
-"\n0"))
 		self.add_task_label.setText(_translate("MainWindow", "Add Task"))
-		# self.date_select_label.setText(_translate("MainWindow", str(self.selected_date)))
 		self.date_select_combox.setItemText(0, _translate("MainWindow", "Today"))
 		self.date_select_combox.setItemText(1, _translate("MainWindow", "Tomorrow"))
 		self.date_select_combox.setItemText(2, _translate("MainWindow", "Select Date"))
-		# self.sub_select_label.setText(_translate("MainWindow", "All Subjects"))
 		self.sub_select_combox.setItemText(0, _translate("MainWindow", "All"))
 		self.sub_select_combox.setItemText(1, _translate("MainWindow", "Physics"))
 		self.sub_select_combox.setItemText(2, _translate("MainWindow", "Chemistry"))
 		self.sub_select_combox.setItemText(3, _translate("MainWindow", "Maths"))
 		self.sub_select_combox.setItemText(4, _translate("MainWindow", "CS"))
 		self.sub_select_combox.setItemText(5, _translate("MainWindow", "Biology"))
-		# self.priority_select_label.setText(_translate("MainWindow", "All Priority"))
 		self.priority_select_combox.setItemText(0, _translate("MainWindow", "All"))
 		self.priority_select_combox.setItemText(1, _translate("MainWindow", "Low"))
 		self.priority_select_combox.setItemText(2, _translate("MainWindow", "Medium"))
 		self.priority_select_combox.setItemText(3, _translate("MainWindow", "High"))
-		self.menuFile.setTitle(_translate("MainWindow", "File"))
-		self.actionHome.setText(_translate("MainWindow", "Home"))
 
 		for i, tb in enumerate(self.task_block_list):
 			tb.retranslateUi()
-			# tb.setGeometry(QtCore.QRect(10, (i*60)+20, 741, 50))
-			# tb.setText('abcd')
+
+	def save_dict(self):
+		td = {}
+		c = 0
+		for x in range(len(tasks_dict)):
+			if tasks_dict[str(x)]["checked"] == "F":
+				td[str(c)] = tasks_dict[str(x)]
+				c += 1
+		with open("data/tasks.json", 'r+') as task_file:
+			json.dump(td, task_file)
+
 
 
 
 if __name__ == "__main__":
 	import sys
-	import json
 
 	app = QtWidgets.QApplication(sys.argv)
+
+	font_db = QtGui.QFontDatabase()
+	font_id = font_db.addApplicationFont("Baloo2-Regular.ttf")
 	MainWindow = QtWidgets.QMainWindow()
 	ui = Ui_MainWindow()
 	ui.setupUi(MainWindow)
@@ -845,12 +860,8 @@ if __name__ == "__main__":
 		ui.sort_tasks()
 
 	ui.retranslateUi(MainWindow)
+	MainWindow.setWindowTitle("Goals!")
+	MainWindow.setWindowIcon(QtGui.QIcon("logo.png"))
 	MainWindow.show()
-	sys.exit(app.exec_())
-
-	# app = QtWidgets.QApplication(sys.argv)
-	# MainWindow = QtWidgets.QMainWindow()
-	# ui = Ui_MainWindow()
-	# ui.setupUi(MainWindow)
-	# MainWindow.show()
-	# sys.exit(app.exec_())
+	app.exec_()
+	sys.exit(ui.save_dict())
